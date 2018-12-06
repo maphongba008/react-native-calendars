@@ -63,16 +63,16 @@ class CalendarHeader extends Component {
   }
 
   onPressLeft() {
-    const {onPressArrowLeft} = this.props;
-    if(typeof onPressArrowLeft === 'function') {
+    const { onPressArrowLeft } = this.props;
+    if (typeof onPressArrowLeft === 'function') {
       return onPressArrowLeft(this.substractMonth);
     }
     return this.substractMonth();
   }
 
   onPressRight() {
-    const {onPressArrowRight} = this.props;
-    if(typeof onPressArrowRight === 'function') {
+    const { onPressArrowRight } = this.props;
+    if (typeof onPressArrowRight === 'function') {
       return onPressArrowRight(this.addMonth);
     }
     return this.addMonth();
@@ -87,30 +87,30 @@ class CalendarHeader extends Component {
         <TouchableOpacity
           onPress={this.onPressLeft}
           style={this.style.arrow}
-          hitSlop={{left: 20, right: 20, top: 20, bottom: 20}}
+          hitSlop={{ left: 20, right: 20, top: 20, bottom: 20 }}
           testID={CHANGE_MONTH_LEFT_ARROW}
         >
           {this.props.renderArrow
             ? this.props.renderArrow('left')
             : <Image
-                source={require('../img/previous.png')}
-                style={this.style.arrowImage}
-              />}
+              source={require('../img/previous.png')}
+              style={this.style.arrowImage}
+            />}
         </TouchableOpacity>
       );
       rightArrow = (
         <TouchableOpacity
           onPress={this.onPressRight}
           style={this.style.arrow}
-          hitSlop={{left: 20, right: 20, top: 20, bottom: 20}}
+          hitSlop={{ left: 20, right: 20, top: 20, bottom: 20 }}
           testID={CHANGE_MONTH_RIGHT_ARROW}
         >
           {this.props.renderArrow
             ? this.props.renderArrow('right')
             : <Image
-                source={require('../img/next.png')}
-                style={this.style.arrowImage}
-              />}
+              source={require('../img/next.png')}
+              style={this.style.arrowImage}
+            />}
         </TouchableOpacity>
       );
     }
@@ -123,9 +123,11 @@ class CalendarHeader extends Component {
         <View style={this.style.header}>
           {leftArrow}
           <View style={{ flexDirection: 'row' }}>
-            <Text allowFontScaling={false} style={this.style.monthText} accessibilityTraits='header'>
-              {this.props.month.toString(this.props.monthFormat)}
-            </Text>
+            <TouchableOpacity onPress={this.props.onMonthPress}>
+              <Text allowFontScaling={false} style={this.style.monthText} accessibilityTraits='header'>
+                {this.props.month.toString(this.props.monthFormat)}
+              </Text>
+            </TouchableOpacity>
             {indicator}
           </View>
           {rightArrow}

@@ -1,17 +1,17 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import {
-  FlatList, Platform, Dimensions,
+  FlatList, Platform, Dimensions, TouchableOpacity, View, StyleSheet, Text
 } from 'react-native';
 import PropTypes from 'prop-types';
 import XDate from 'xdate';
 
-import {xdateToData, parseDate} from '../interface';
+import { xdateToData, parseDate } from '../interface';
 import styleConstructor from './style';
 import dateutils from '../dateutils';
 import Calendar from '../calendar';
 import CalendarListItem from './item';
 
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 class CalendarList extends Component {
   static propTypes = {
@@ -54,6 +54,8 @@ class CalendarList extends Component {
     scrollEnabled: true,
     scrollsToTop: false,
     removeClippedSubviews: Platform.OS === 'android' ? false : true,
+    minYear: 1950,
+    maxYear: 2100,
   }
 
   constructor(props) {
@@ -81,7 +83,8 @@ class CalendarList extends Component {
     this.state = {
       rows,
       texts,
-      openDate: date
+      openDate: date,
+      showYearView: false,
     };
 
     this.onViewableItemsChangedBound = this.onViewableItemsChanged.bind(this);
@@ -112,7 +115,7 @@ class CalendarList extends Component {
         }
       }
     }
-    this.listView.scrollToOffset({offset: scrollAmount, animated});
+    this.listView.scrollToOffset({ offset: scrollAmount, animated });
   }
 
   scrollToMonth(m) {
@@ -123,7 +126,7 @@ class CalendarList extends Component {
     const scrollAmount = (size * this.props.pastScrollRange) + (diffMonths * size);
     //console.log(month, this.state.openDate);
     //console.log(scrollAmount, diffMonths);
-    this.listView.scrollToOffset({offset: scrollAmount, animated: false});
+    this.listView.scrollToOffset({ offset: scrollAmount, animated: false });
   }
 
   componentWillReceiveProps(props) {
@@ -148,7 +151,7 @@ class CalendarList extends Component {
     });
   }
 
-  onViewableItemsChanged({viewableItems}) {
+  onViewableItemsChanged({ viewableItems }) {
     function rowIsCloseToViewable(index, distance) {
       for (let i = 0; i < viewableItems.length; i++) {
         if (Math.abs(index - parseInt(viewableItems[i].index)) <= distance) {
@@ -182,12 +185,12 @@ class CalendarList extends Component {
     });
   }
 
-  renderCalendar({item}) {
-    return (<CalendarListItem item={item} calendarHeight={this.props.calendarHeight} calendarWidth={this.props.horizontal ? this.props.calendarWidth : undefined  } {...this.props} />);
+  renderCalendar({ item }) {
+    return (<CalendarListItem onMonthPress={() => this.setState({ showYearView: true })} item={item} calendarHeight={this.props.calendarHeight} calendarWidth={this.props.horizontal ? this.props.calendarWidth : undefined} {...this.props} />);
   }
 
   getItemLayout(data, index) {
-    return {length: this.props.horizontal ? this.props.calendarWidth : this.props.calendarHeight, offset: (this.props.horizontal ? this.props.calendarWidth : this.props.calendarHeight) * index, index};
+    return { length: this.props.horizontal ? this.props.calendarWidth : this.props.calendarHeight, offset: (this.props.horizontal ? this.props.calendarWidth : this.props.calendarHeight) * index, index };
   }
 
   getMonthIndex(month) {
@@ -195,33 +198,92 @@ class CalendarList extends Component {
     return diffMonths;
   }
 
+  componentDidUpdate = (prevProps, prevState) => {
+    if (prevState.showYearView !== this.state.showYearView && this.state.showYearView) {
+      const offset = (new Date().getFullYear() - this.props.minYear - 8) * ITEM_HEIGHT;
+      this.yearList.scrollToOffset({ offset: offset, animated: true });
+    }
+  };
+
+  renderYear = ({ item }) => {
+    const { onPressYear } = this.props;
+    return (
+      <TouchableOpacity
+        onPress={() => { this.setState({ showYearView: false }); onPressYear && onPressYear(item) }} style={styles.item}>
+        <Text>{item}</Text>
+      </TouchableOpacity>
+    )
+  }
+
+
+  renderYearView = () => {
+    if (!this.state.showYearView) {
+      return null;
+    }
+    let data = [];
+    for (let i = this.props.minYear; i <= this.props.maxYear; i++) {
+      data.push(i);
+    }
+    return (
+      <TouchableOpacity activeOpacity={1} style={[StyleSheet.absoluteFill, styles.yearContainer]}>
+        <FlatList
+          removeClippedSubviews={true}
+          getItemLayout={(data, index) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
+          initialNumToRender={100}
+          ref={r => this.yearList = r}
+          data={data}
+          keyExtractor={item => String(item)}
+          renderItem={this.renderYear}
+        />
+      </TouchableOpacity>
+    )
+  }
+
   render() {
     return (
-      <FlatList
-        onLayout={this.onLayout}
-        ref={(c) => this.listView = c}
-        //scrollEventThrottle={1000}
-        style={[this.style.container, this.props.style]}
-        initialListSize={this.props.pastScrollRange + this.props.futureScrollRange + 1}
-        data={this.state.rows}
-        //snapToAlignment='start'
-        //snapToInterval={this.calendarHeight}
-        removeClippedSubviews={this.props.removeClippedSubviews}
-        pageSize={1}
-        horizontal={this.props.horizontal}
-        pagingEnabled={this.props.pagingEnabled}
-        onViewableItemsChanged={this.onViewableItemsChangedBound}
-        renderItem={this.renderCalendarBound}
-        showsVerticalScrollIndicator={this.props.showScrollIndicator}
-        showsHorizontalScrollIndicator={this.props.showScrollIndicator}
-        scrollEnabled={this.props.scrollingEnabled}
-        keyExtractor={(item, index) => String(index)}
-        initialScrollIndex={this.state.openDate ? this.getMonthIndex(this.state.openDate) : false}
-        getItemLayout={this.getItemLayout}
-        scrollsToTop={this.props.scrollsToTop}
-      />
+      <View>
+        <FlatList
+          onLayout={this.onLayout}
+          ref={(c) => this.listView = c}
+          //scrollEventThrottle={1000}
+          style={[this.style.container, this.props.style]}
+          initialListSize={this.props.pastScrollRange + this.props.futureScrollRange + 1}
+          data={this.state.rows}
+          //snapToAlignment='start'
+          //snapToInterval={this.calendarHeight}
+          removeClippedSubviews={this.props.removeClippedSubviews}
+          pageSize={1}
+          horizontal={this.props.horizontal}
+          pagingEnabled={this.props.pagingEnabled}
+          onViewableItemsChanged={this.onViewableItemsChangedBound}
+          renderItem={this.renderCalendarBound}
+          showsVerticalScrollIndicator={this.props.showScrollIndicator}
+          showsHorizontalScrollIndicator={this.props.showScrollIndicator}
+          scrollEnabled={this.props.scrollingEnabled}
+          keyExtractor={(item, index) => String(index)}
+          initialScrollIndex={this.state.openDate ? this.getMonthIndex(this.state.openDate) : false}
+          getItemLayout={this.getItemLayout}
+          scrollsToTop={this.props.scrollsToTop}
+        />
+        {
+          this.renderYearView()
+        }
+      </View>
     );
   }
 }
 
 export default CalendarList;
+
+const ITEM_HEIGHT = 50;
+
+const styles = StyleSheet.create({
+  yearContainer: {
+    backgroundColor: '#FFF',
+  },
+  item: {
+    height: ITEM_HEIGHT,
+    alignItems: 'center',
+    justifyContent: 'center',
+  }
+})
